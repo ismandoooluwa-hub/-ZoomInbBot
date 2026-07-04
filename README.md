@@ -9,17 +9,9 @@ A Telegram bot that zooms/enlarges images with 2x, 3x, and 4x magnification.
 - 💬 Interactive button interface
 - 🚀 Deployed on Railway
 
-## Tech Stack
-- Python 3.11
-- python-telegram-bot v20
-- Pillow (PIL)
-- Flask
-- Railway
-
 ## Environment Variables
 - `TELEGRAM_BOT_TOKEN`: Your bot token from @BotFather
 - `WEBHOOK_URL`: Your Railway app URL (e.g., https://zoom-in-bot.up.railway.app)
-- `PORT`: (Optional) Port to run on (default: 5000)
 
 ## Deployment
 1. Fork/clone this repository
