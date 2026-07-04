@@ -1,5 +1,6 @@
 FROM python:3.11-slim
 
+# Set working directory
 WORKDIR /app
 
 # Install system dependencies for Pillow
@@ -10,12 +11,15 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
+# Expose port 8080
+EXPOSE 8080
+
 # Run the application
-CMD ["gunicorn", "--bind", "0.0.0.0:$PORT", "app:app", "--worker-class", "gthread", "--workers", "1", "--threads", "8", "--timeout", "120"]
+CMD ["python", "app.py"]
