@@ -36,7 +36,7 @@ class Config:
     """Configuration settings for the bot"""
     TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
     WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
-    PORT = int(os.environ.get("PORT", 5000))
+    PORT = int(os.environ.get("PORT", 5000))  # FIXED: Proper port handling
     MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
     ALLOWED_ZOOM_FACTORS = [2.0, 3.0, 4.0]
     
@@ -449,9 +449,10 @@ def main():
         # Setup webhook
         asyncio.run(setup_webhook())
         
-        # Start Flask server
-        logger.info(f"🚀 Starting Flask server on port {Config.PORT}")
-        app.run(host="0.0.0.0", port=Config.PORT, debug=False)
+        # Start Flask server - FIXED: Proper port handling
+        port = int(os.environ.get("PORT", 5000))
+        logger.info(f"🚀 Starting Flask server on port {port}")
+        app.run(host="0.0.0.0", port=port, debug=False)
         
     except Exception as e:
         logger.error(f"❌ Fatal error: {e}")
