@@ -5,5 +5,4 @@ venv/
 .venv/
 *.log
 .DS_Store
-*.pid
 .railway/
