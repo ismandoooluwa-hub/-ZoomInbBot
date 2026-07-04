@@ -17,7 +17,6 @@ from telegram.ext import (
     CallbackQueryHandler,
 )
 from PIL import Image
-import requests
 
 # ============================================
 # LOGGING CONFIGURATION
@@ -36,7 +35,7 @@ class Config:
     """Configuration settings for the bot"""
     TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
     WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
-    PORT = int(os.environ.get("PORT", 5000))  # FIXED: Proper port handling
+    PORT = 8080  # Fixed port for Railway
     MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
     ALLOWED_ZOOM_FACTORS = [2.0, 3.0, 4.0]
     
@@ -124,7 +123,8 @@ class ImageProcessor:
                 "size_bytes": len(image_data),
                 "size_kb": round(len(image_data) / 1024, 1),
             }
-        except:
+        except Exception as e:
+            logger.error(f"Error getting image info: {e}")
             return {"error": "Could not read image metadata"}
 
 # ============================================
@@ -404,7 +404,8 @@ def health():
         "status": "healthy",
         "bot_token": "✓" if Config.TOKEN else "✗",
         "webhook_url": Config.WEBHOOK_URL or "Not set (polling mode)",
-        "port": Config.PORT
+        "port": Config.PORT,
+        "python_version": sys.version
     })
 
 # ============================================
@@ -449,10 +450,9 @@ def main():
         # Setup webhook
         asyncio.run(setup_webhook())
         
-        # Start Flask server - FIXED: Proper port handling
-        port = int(os.environ.get("PORT", 5000))
-        logger.info(f"🚀 Starting Flask server on port {port}")
-        app.run(host="0.0.0.0", port=port, debug=False)
+        # Start Flask server
+        logger.info(f"🚀 Starting Flask server on port {Config.PORT}")
+        app.run(host="0.0.0.0", port=Config.PORT, debug=False, threaded=True)
         
     except Exception as e:
         logger.error(f"❌ Fatal error: {e}")
