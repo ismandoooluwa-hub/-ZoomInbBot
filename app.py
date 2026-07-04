@@ -2,7 +2,6 @@ import os
 import sys
 import logging
 import io
-import asyncio
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -29,12 +28,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================
-# CONFIGURATION
+# CONFIGURATION - NO PORT VARIABLE
 # ============================================
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 WEBHOOK_URL = os.environ.get("WEBHOOK_URL", "")
-PORT = int(os.environ.get("PORT", 8080))
-MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
+PORT = 8080  # HARDCODED
+MAX_FILE_SIZE = 20 * 1024 * 1024
 ALLOWED_ZOOM_FACTORS = [2.0, 3.0, 4.0]
 
 if not TOKEN:
@@ -51,7 +50,6 @@ application = Application.builder().token(TOKEN).build()
 # IMAGE PROCESSING
 # ============================================
 def zoom_image(image_data: bytes, zoom_factor: float) -> Optional[io.BytesIO]:
-    """Zoom/enlarge an image by a given factor"""
     try:
         img = Image.open(io.BytesIO(image_data))
         original_width, original_height = img.size
@@ -69,13 +67,11 @@ def zoom_image(image_data: bytes, zoom_factor: float) -> Optional[io.BytesIO]:
         
         logger.info(f"✅ Zoomed: {original_width}x{original_height} → {new_width}x{new_height}")
         return output
-        
     except Exception as e:
         logger.error(f"❌ Image zoom error: {e}")
         return None
 
 def get_image_info(image_data: bytes) -> Dict[str, Any]:
-    """Get metadata about an image"""
     try:
         img = Image.open(io.BytesIO(image_data))
         return {
@@ -92,7 +88,6 @@ def get_image_info(image_data: bytes) -> Dict[str, Any]:
 # BOT HANDLERS
 # ============================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /start command"""
     welcome_text = (
         "🔍 *Welcome to ZoomInBot!*\n\n"
         "I can zoom/enlarge any image you send me!\n\n"
@@ -120,7 +115,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /help command"""
     help_text = (
         "🔍 *ZoomInBot Help*\n\n"
         "1️⃣ Send me any photo\n"
@@ -138,22 +132,16 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /cancel command"""
     context.user_data.pop('image_data', None)
-    await update.message.reply_text(
-        "✅ Operation cancelled. Send me a new image to zoom!"
-    )
+    await update.message.reply_text("✅ Operation cancelled. Send me a new image to zoom!")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle incoming photos"""
     try:
         photo = update.message.photo[-1]
         file = await photo.get_file()
         
         if file.file_size > MAX_FILE_SIZE:
-            await update.message.reply_text(
-                f"❌ File too large! Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB."
-            )
+            await update.message.reply_text(f"❌ File too large! Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB.")
             return
         
         image_data = await file.download_as_bytearray()
@@ -180,15 +168,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
-        
     except Exception as e:
         logger.error(f"❌ Error handling photo: {e}")
-        await update.message.reply_text(
-            "❌ Error processing your image. Please try again."
-        )
+        await update.message.reply_text("❌ Error processing your image. Please try again.")
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle inline button callbacks"""
     query = update.callback_query
     await query.answer()
     
@@ -235,9 +219,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         image_data = context.user_data.get('image_data')
         if not image_data:
-            await query.edit_message_text(
-                "❌ No image found. Please send a new photo using /start"
-            )
+            await query.edit_message_text("❌ No image found. Please send a new photo using /start")
             return
         
         await query.edit_message_text(
@@ -269,20 +251,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
                 context.user_data.pop('image_data', None)
                 logger.info(f"✅ User {user_id} zoomed image {zoom_factor}x")
-                
             else:
-                await query.message.reply_text(
-                    "❌ Failed to zoom image. Please try with a smaller image."
-                )
-                
+                await query.message.reply_text("❌ Failed to zoom image. Please try with a smaller image.")
         except Exception as e:
             logger.error(f"❌ Error in zoom callback: {e}")
-            await query.message.reply_text(
-                "❌ An error occurred. Please try again."
-            )
+            await query.message.reply_text("❌ An error occurred. Please try again.")
 
 async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle unknown commands"""
     await update.message.reply_text(
         "🤔 I don't understand that command.\n\n"
         "Send me a photo and I'll zoom it for you!\n\n"
@@ -290,7 +265,6 @@ async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle errors globally"""
     logger.error(f"❌ Update caused error: {context.error}")
 
 # ============================================
@@ -318,7 +292,7 @@ async def webhook():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "healthy"}), 200
+    return jsonify({"status": "healthy", "port": PORT}), 200
 
 # ============================================
 # WEBHOOK SETUP
@@ -353,13 +327,15 @@ def main():
         application.add_handler(CallbackQueryHandler(button_callback))
         application.add_error_handler(error_handler)
         
-        # Setup webhook synchronously
+        # Setup webhook
+        import asyncio
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(setup_webhook())
         
-        # Start Flask
+        # Start Flask on port 8080
         logger.info(f"🚀 Starting Flask server on port {PORT}")
+        logger.info(f"🌐 Webhook URL: {WEBHOOK_URL}")
         app.run(host="0.0.0.0", port=PORT, debug=False)
         
     except Exception as e:
